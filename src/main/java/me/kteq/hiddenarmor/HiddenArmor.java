@@ -13,6 +13,7 @@ import me.kteq.hiddenarmor.util.ConfigHolder;
 import me.kteq.hiddenarmor.util.protocol.PacketIndexMapper;
 import me.kteq.hiddenarmor.listener.EntityToggleGlideListener;
 import me.kteq.hiddenarmor.listener.GameModeListener;
+import me.kteq.hiddenarmor.listener.PlayerQuitListener;
 import me.kteq.hiddenarmor.listener.PotionEffectListener;
 import me.kteq.hiddenarmor.listener.InventoryShiftClickListener;
 import me.kteq.hiddenarmor.listener.packet.EntityEquipmentPacketListener;
@@ -77,6 +78,7 @@ public final class HiddenArmor extends JavaPlugin {
         new GameModeListener(this);
         new PotionEffectListener(this);
         new EntityToggleGlideListener(this);
+        new PlayerQuitListener(this);
 
         //getCommand("hiddenarmor").setTabCompleter(new HiddenArmorTabCompleter(this));
         reloadConfig();

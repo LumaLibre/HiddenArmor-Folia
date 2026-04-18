@@ -30,6 +30,7 @@ public class PlayerManager implements ConfigHolder {
     private boolean invisibleAlwaysHideGear;
 
     private Set<UUID> enabledPlayersUUID = new HashSet<>();
+    private final Set<UUID> forceHiddenPlayers = new HashSet<>();
     private final Set<Predicate<Player>> forceDisablePredicates = new HashSet<>();
     private final Set<Predicate<Player>> forceEnablePredicates = new HashSet<>();
 
@@ -101,6 +102,25 @@ public class PlayerManager implements ConfigHolder {
         forceDisablePredicates.add(player -> player.isInvisible() && !invisibleAlwaysHideGear);
 
         forceEnablePredicates.add(player -> player.isInvisible() && invisibleAlwaysHideGear);
+        forceEnablePredicates.add(player -> forceHiddenPlayers.contains(player.getUniqueId()));
+    }
+
+    public void forceHidePlayer(Player player) {
+        forceHiddenPlayers.add(player.getUniqueId());
+        armorUpdater.updatePlayer(player);
+    }
+
+    public void forceShowPlayer(Player player) {
+        forceHiddenPlayers.remove(player.getUniqueId());
+        armorUpdater.updatePlayer(player);
+    }
+
+    public boolean isForcedHidden(Player player) {
+        return forceHiddenPlayers.contains(player.getUniqueId());
+    }
+
+    public void clearForcedHidden(Player player) {
+        forceHiddenPlayers.remove(player.getUniqueId());
     }
 
     public void saveCurrentEnabledPlayers() {

@@ -17,6 +17,6 @@ public class PlayerQuitListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        plugin.getPlayerManager().clearForcedHidden(event.getPlayer());
+        plugin.getPlayerManager().clearForced(event.getPlayer());
     }
 }

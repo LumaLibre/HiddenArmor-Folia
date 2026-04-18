@@ -31,6 +31,7 @@ public class PlayerManager implements ConfigHolder {
 
     private Set<UUID> enabledPlayersUUID = new HashSet<>();
     private final Set<UUID> forceHiddenPlayers = new HashSet<>();
+    private final Set<UUID> forceShownPlayers = new HashSet<>();
     private final Set<Predicate<Player>> forceDisablePredicates = new HashSet<>();
     private final Set<Predicate<Player>> forceEnablePredicates = new HashSet<>();
 
@@ -94,6 +95,9 @@ public class PlayerManager implements ConfigHolder {
                 break;
             }
         }
+        if (forceShownPlayers.contains(player.getUniqueId())) {
+            hidden = false;
+        }
         return !hidden;
     }
 
@@ -110,8 +114,18 @@ public class PlayerManager implements ConfigHolder {
         armorUpdater.updatePlayer(player);
     }
 
-    public void forceShowPlayer(Player player) {
+    public void clearForceHidePlayer(Player player) {
         forceHiddenPlayers.remove(player.getUniqueId());
+        armorUpdater.updatePlayer(player);
+    }
+
+    public void forceShowPlayer(Player player) {
+        forceShownPlayers.add(player.getUniqueId());
+        armorUpdater.updatePlayer(player);
+    }
+
+    public void clearForceShowPlayer(Player player) {
+        forceShownPlayers.remove(player.getUniqueId());
         armorUpdater.updatePlayer(player);
     }
 
@@ -119,8 +133,13 @@ public class PlayerManager implements ConfigHolder {
         return forceHiddenPlayers.contains(player.getUniqueId());
     }
 
-    public void clearForcedHidden(Player player) {
+    public boolean isForcedShown(Player player) {
+        return forceShownPlayers.contains(player.getUniqueId());
+    }
+
+    public void clearForced(Player player) {
         forceHiddenPlayers.remove(player.getUniqueId());
+        forceShownPlayers.remove(player.getUniqueId());
     }
 
     public void saveCurrentEnabledPlayers() {

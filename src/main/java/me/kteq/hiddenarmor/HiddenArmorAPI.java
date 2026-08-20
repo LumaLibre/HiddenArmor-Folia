@@ -1,6 +1,9 @@
 package me.kteq.hiddenarmor;
 
+import me.kteq.hiddenarmor.util.ArmorSlot;
 import org.bukkit.entity.Player;
+
+import java.util.Set;
 
 public final class HiddenArmorAPI {
 
@@ -28,5 +31,29 @@ public final class HiddenArmorAPI {
 
     public static boolean isForcedShown(Player player) {
         return HiddenArmor.getInstance().getPlayerManager().isForcedShown(player);
+    }
+
+    public static void hideSlot(Player player, ArmorSlot slot) {
+        HiddenArmor.getInstance().getPlayerManager().hideSlot(player, slot, false);
+    }
+
+    public static void showSlot(Player player, ArmorSlot slot) {
+        HiddenArmor.getInstance().getPlayerManager().showSlot(player, slot, false);
+    }
+
+    public static void setHiddenSlots(Player player, Set<ArmorSlot> slots) {
+        HiddenArmor.getInstance().getPlayerManager().setHiddenSlots(player, slots, false);
+    }
+
+    public static boolean isSlotHidden(Player player, ArmorSlot slot) {
+        return HiddenArmor.getInstance().getPlayerManager().isSlotEnabled(player, slot);
+    }
+
+    public static Set<ArmorSlot> getHiddenSlots(Player player) {
+        return HiddenArmor.getInstance().getPlayerManager().getHiddenSlots(player);
+    }
+
+    public static Set<ArmorSlot> getEffectiveHiddenSlots(Player player) {
+        return HiddenArmor.getInstance().getPlayerManager().getEffectiveHiddenSlots(player);
     }
 }

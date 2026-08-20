@@ -7,6 +7,7 @@ import com.comphenix.protocol.events.PacketEvent;
 import me.kteq.hiddenarmor.HiddenArmor;
 import me.kteq.hiddenarmor.handler.ArmorPlaceholderHandler;
 import me.kteq.hiddenarmor.manager.PlayerManager;
+import me.kteq.hiddenarmor.util.ArmorSlot;
 import me.kteq.hiddenarmor.util.protocol.PacketFields;
 import me.kteq.hiddenarmor.util.protocol.PacketIndexMapper;
 import org.bukkit.entity.Player;
@@ -40,11 +41,14 @@ public class WindowItemsPacketListener extends PacketAdapter {
 
 
         List<ItemStack> items = packet.getItemListModifier().read(ITEM_LIST_INDEX);
-        for (int i = 5; i < 9; i++) {
-            ItemStack itemStack = items.get(i);
+        for (ArmorSlot armorSlot : ArmorSlot.values()) {
+            if (playerManager.isArmorVisible(player, armorSlot)) continue;
+
+            int slotNumber = armorSlot.getRawSlot();
+            ItemStack itemStack = items.get(slotNumber);
             if (itemStack != null) {
                 ItemStack placeholder = placeholderHandler.buildItemPlaceholder(itemStack);
-                items.set(i, placeholder);
+                items.set(slotNumber, placeholder);
             }
         }
     }

@@ -3,9 +3,11 @@ package me.kteq.hiddenarmor.manager;
 import me.kteq.hiddenarmor.HiddenArmor;
 import me.kteq.hiddenarmor.handler.ArmorUpdateHandler;
 import me.kteq.hiddenarmor.handler.MessageHandler;
+import me.kteq.hiddenarmor.util.ArmorSlot;
 import me.kteq.hiddenarmor.util.ConfigHolder;
 import net.md_5.bungee.api.ChatMessageType;
 import org.bukkit.GameMode;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -19,6 +21,9 @@ import java.util.stream.Collectors;
 
 
 public class PlayerManager implements ConfigHolder {
+    private static final String LEGACY_ENABLED_PLAYERS_PATH = "enabled-players";
+    private static final String HIDDEN_SLOTS_PATH = "hidden-slots";
+
     private final HiddenArmor plugin;
     private final ArmorUpdateHandler armorUpdater;
     private final MessageHandler messageHandler;
@@ -29,7 +34,7 @@ public class PlayerManager implements ConfigHolder {
 
     private boolean invisibleAlwaysHideGear;
 
-    private Set<UUID> enabledPlayersUUID = new HashSet<>();
+    private Map<UUID, Set<ArmorSlot>> hiddenSlotsMap = new HashMap<>();
     private final Set<UUID> forceHiddenPlayers = new HashSet<>();
     private final Set<UUID> forceShownPlayers = new HashSet<>();
     private final Set<Predicate<Player>> forceDisablePredicates = new HashSet<>();
@@ -54,51 +59,118 @@ public class PlayerManager implements ConfigHolder {
     }
 
     public void enablePlayer(Player player, boolean inform) {
-        if (isEnabled(player)) return;
-        if (inform) {
-            Map<String, String> placeholderMap = new HashMap<>();
-            placeholderMap.put("visibility", "%visibility-hidden%");
-            messageHandler.message(ChatMessageType.ACTION_BAR, player, "%armor-visibility%", false, placeholderMap);
-        }
-
-        this.enabledPlayersUUID.add(player.getUniqueId());
-        armorUpdater.updatePlayer(player);
+        setHiddenSlots(player, ArmorSlot.all(), inform);
     }
 
     public void disablePlayer(Player player, boolean inform) {
-        if (!isEnabled(player)) return;
+        setHiddenSlots(player, ArmorSlot.none(), inform);
+    }
+
+    public void setHiddenSlots(Player player, Set<ArmorSlot> slots, boolean inform) {
+        Set<ArmorSlot> newSlots = ArmorSlot.none();
+        newSlots.addAll(slots);
+        if (newSlots.equals(getHiddenSlots(player))) return;
+
         if (inform) {
-            Map<String, String> placeholderMap = new HashMap<>();
-            placeholderMap.put("visibility", "%visibility-shown%");
-            messageHandler.message(ChatMessageType.ACTION_BAR, player, "%armor-visibility%", false, placeholderMap);
+            informArmorVisibility(player, !newSlots.isEmpty());
         }
 
-        enabledPlayersUUID.remove(player.getUniqueId());
+        storeHiddenSlots(player, newSlots);
         armorUpdater.updatePlayer(player);
     }
 
-    public boolean isEnabled(Player player) {
-        return this.enabledPlayersUUID.contains(player.getUniqueId());
+    public void toggleSlot(Player player, ArmorSlot slot, boolean inform) {
+        setSlotEnabled(player, slot, !isSlotEnabled(player, slot), inform);
     }
 
-    public boolean isArmorVisible(Player player) {
-        boolean hidden = isEnabled(player);
+    public void hideSlot(Player player, ArmorSlot slot, boolean inform) {
+        setSlotEnabled(player, slot, true, inform);
+    }
+
+    public void showSlot(Player player, ArmorSlot slot, boolean inform) {
+        setSlotEnabled(player, slot, false, inform);
+    }
+
+    private void setSlotEnabled(Player player, ArmorSlot slot, boolean hidden, boolean inform) {
+        if (isSlotEnabled(player, slot) == hidden) return;
+
+        if (inform) {
+            informSlotVisibility(player, slot, hidden);
+        }
+
+        Set<ArmorSlot> slots = getHiddenSlots(player);
+        if (hidden) {
+            slots.add(slot);
+        } else {
+            slots.remove(slot);
+        }
+
+        storeHiddenSlots(player, slots);
+        armorUpdater.updatePlayer(player);
+    }
+
+    private void storeHiddenSlots(Player player, Set<ArmorSlot> slots) {
+        if (slots.isEmpty()) {
+            hiddenSlotsMap.remove(player.getUniqueId());
+        } else {
+            hiddenSlotsMap.put(player.getUniqueId(), slots);
+        }
+    }
+
+    public boolean isEnabled(Player player) {
+        return !getHiddenSlots(player).isEmpty();
+    }
+
+    public boolean isSlotEnabled(Player player, ArmorSlot slot) {
+        return getHiddenSlots(player).contains(slot);
+    }
+
+    public Set<ArmorSlot> getHiddenSlots(Player player) {
+        Set<ArmorSlot> slots = ArmorSlot.none();
+        Set<ArmorSlot> playerSlots = hiddenSlotsMap.get(player.getUniqueId());
+        if (playerSlots != null) slots.addAll(playerSlots);
+        return slots;
+    }
+
+    public Set<ArmorSlot> getEffectiveHiddenSlots(Player player) {
+        Set<ArmorSlot> hidden = getHiddenSlots(player);
         for (Predicate<Player> predicate : forceDisablePredicates) {
             if (predicate.test(player)) {
-                hidden = false;
+                hidden = ArmorSlot.none();
                 break;
             }
         }
         for (Predicate<Player> predicate : forceEnablePredicates) {
             if (predicate.test(player)) {
-                hidden = true;
+                hidden = ArmorSlot.all();
                 break;
             }
         }
         if (forceShownPlayers.contains(player.getUniqueId())) {
-            hidden = false;
+            hidden = ArmorSlot.none();
         }
-        return !hidden;
+        return hidden;
+    }
+
+    public boolean isArmorVisible(Player player) {
+        return getEffectiveHiddenSlots(player).isEmpty();
+    }
+
+    public boolean isArmorVisible(Player player, ArmorSlot slot) {
+        return !getEffectiveHiddenSlots(player).contains(slot);
+    }
+
+    private void informArmorVisibility(Player player, boolean hidden) {
+        Map<String, String> placeholderMap = new HashMap<>();
+        placeholderMap.put("visibility", hidden ? "%visibility-hidden%" : "%visibility-shown%");
+        messageHandler.message(ChatMessageType.ACTION_BAR, player, "%armor-visibility%", false, placeholderMap);
+    }
+
+    private void informSlotVisibility(Player player, ArmorSlot slot, boolean hidden) {
+        Map<String, String> placeholderMap = new HashMap<>();
+        placeholderMap.put("slot", slot.getNamePlaceholder());
+        placeholderMap.put("visibility", hidden ? "%visibility-hidden%" : "%visibility-shown%");
+        messageHandler.message(ChatMessageType.ACTION_BAR, player, "%armor-visibility-slot%", false, placeholderMap);
     }
 
     private void registerDefaultPredicates() {
@@ -143,9 +215,18 @@ public class PlayerManager implements ConfigHolder {
     }
 
     public void saveCurrentEnabledPlayers() {
-        List<String> enabledUUIDs = this.enabledPlayersUUID.stream().map(UUID::toString).collect(Collectors.toList());
+        List<String> fullyEnabledUUIDs = hiddenSlotsMap.entrySet().stream()
+                .filter(entry -> entry.getValue().size() == ArmorSlot.values().length)
+                .map(entry -> entry.getKey().toString())
+                .collect(Collectors.toList());
 
-        enabledPlayersConfig.set("enabled-players", enabledUUIDs);
+        enabledPlayersConfig.set(LEGACY_ENABLED_PLAYERS_PATH, fullyEnabledUUIDs);
+        enabledPlayersConfig.set(HIDDEN_SLOTS_PATH, null);
+        for (Map.Entry<UUID, Set<ArmorSlot>> entry : hiddenSlotsMap.entrySet()) {
+            List<String> slotNames = entry.getValue().stream().map(ArmorSlot::getName).collect(Collectors.toList());
+            enabledPlayersConfig.set(HIDDEN_SLOTS_PATH + "." + entry.getKey(), slotNames);
+        }
+
         try {
             enabledPlayersConfig.save(enabledPlayersFile);
         } catch (IOException e) {
@@ -155,7 +236,40 @@ public class PlayerManager implements ConfigHolder {
 
     private void loadEnabledPlayers() {
         loadEnabledPlayersConfig();
-        this.enabledPlayersUUID = enabledPlayersConfig.getStringList("enabled-players").stream().map(UUID::fromString).collect(Collectors.toSet());
+        this.hiddenSlotsMap = new HashMap<>();
+
+        for (String uuidString : enabledPlayersConfig.getStringList(LEGACY_ENABLED_PLAYERS_PATH)) {
+            UUID uuid = parseUUID(uuidString);
+            if (uuid != null) hiddenSlotsMap.put(uuid, ArmorSlot.all());
+        }
+
+        ConfigurationSection hiddenSlotsSection = enabledPlayersConfig.getConfigurationSection(HIDDEN_SLOTS_PATH);
+        if (hiddenSlotsSection == null) return;
+        for (String uuidString : hiddenSlotsSection.getKeys(false)) {
+            UUID uuid = parseUUID(uuidString);
+            if (uuid == null) continue;
+
+            Set<ArmorSlot> slots = ArmorSlot.none();
+            for (String slotName : hiddenSlotsSection.getStringList(uuidString)) {
+                ArmorSlot slot = ArmorSlot.fromName(slotName);
+                if (slot != null) slots.add(slot);
+            }
+
+            if (slots.isEmpty()) {
+                hiddenSlotsMap.remove(uuid);
+            } else {
+                hiddenSlotsMap.put(uuid, slots);
+            }
+        }
+    }
+
+    private UUID parseUUID(String uuidString) {
+        try {
+            return UUID.fromString(uuidString);
+        } catch (IllegalArgumentException e) {
+            plugin.getLogger().log(Level.WARNING, "Ignoring invalid UUID " + uuidString + " on " + enabledPlayersFile);
+            return null;
+        }
     }
 
     private void loadEnabledPlayersConfig() {

@@ -62,7 +62,8 @@ public final class HiddenArmor extends JavaPlugin {
         // Enable commands
         new ToggleArmorCommand(this, "togglearmor")
                 .setPermission("hiddenarmor")
-                .setPermissionRequired(false);
+                .setPermissionRequired(false)
+                .setTabCompleter(new HiddenArmorTabCompleter(this));
         new HiddenArmorCommand(this, "hiddenarmor")
                 .setPermission("hiddenarmor")
                 .setPermissionRequired(false)

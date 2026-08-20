@@ -6,6 +6,7 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.Pair;
 import me.kteq.hiddenarmor.HiddenArmor;
+import me.kteq.hiddenarmor.util.ArmorSlot;
 import me.kteq.hiddenarmor.util.protocol.PacketFields;
 import me.kteq.hiddenarmor.util.protocol.PacketIndexMapper;
 import me.kteq.hiddenarmor.util.protocol.ProtocolUtil;
@@ -42,13 +43,13 @@ public class ArmorUpdateHandler {
 
     public void updateSelf(Player player) {
         PlayerInventory inv = player.getInventory();
-        for(int i = 5; i<=8;i++) {
+        for(ArmorSlot armorSlot : ArmorSlot.values()) {
             PacketContainer packetSelf = protocolManager.createPacket(PacketType.Play.Server.SET_SLOT);
 
             packetSelf.getIntegers().write(SET_SLOT_$WINDOW_ID_INDEX, 0);
-            packetSelf.getIntegers().write(SET_SLOT_$SLOT_NUMBER_INDEX, i);
+            packetSelf.getIntegers().write(SET_SLOT_$SLOT_NUMBER_INDEX, armorSlot.getRawSlot());
 
-            ItemStack armor = ProtocolUtil.getArmor(ProtocolUtil.ArmorType.getType(i), inv);
+            ItemStack armor = ProtocolUtil.getArmor(armorSlot, inv);
             packetSelf.getItemModifier().write(SET_SLOT_$ITEM_INDEX, armor);
 
             protocolManager.sendServerPacket(player, packetSelf);
@@ -60,11 +61,10 @@ public class ArmorUpdateHandler {
         packetOthers.getIntegers().write(ENTITY_EQUIPMENT_$ENTITY_ID_INDEX, player.getEntityId());
 
         PlayerInventory inv = player.getInventory();
-        List<Pair<EnumWrappers.ItemSlot, ItemStack>> pairList = packetOthers.getSlotStackPairLists().read(0);
-        pairList.add(new Pair<>(EnumWrappers.ItemSlot.HEAD, ProtocolUtil.getArmor(ProtocolUtil.ArmorType.HELMET, inv)));
-        pairList.add(new Pair<>(EnumWrappers.ItemSlot.CHEST, ProtocolUtil.getArmor(ProtocolUtil.ArmorType.CHEST, inv)));
-        pairList.add(new Pair<>(EnumWrappers.ItemSlot.LEGS, ProtocolUtil.getArmor(ProtocolUtil.ArmorType.LEGGS, inv)));
-        pairList.add(new Pair<>(EnumWrappers.ItemSlot.FEET, ProtocolUtil.getArmor(ProtocolUtil.ArmorType.BOOTS, inv)));
+        List<Pair<EnumWrappers.ItemSlot, ItemStack>> pairList = packetOthers.getSlotStackPairLists().read(ENTITY_EQUIPMENT_$SLOT_ITEM_PAIR_LIST_INDEX);
+        for (ArmorSlot armorSlot : ArmorSlot.values()) {
+            pairList.add(new Pair<>(ProtocolUtil.getItemSlot(armorSlot), ProtocolUtil.getArmor(armorSlot, inv)));
+        }
         pairList.add(new Pair<>(EnumWrappers.ItemSlot.MAINHAND, player.getInventory().getItemInMainHand().clone()));
         pairList.add(new Pair<>(EnumWrappers.ItemSlot.OFFHAND, player.getInventory().getItemInOffHand().clone()));
 

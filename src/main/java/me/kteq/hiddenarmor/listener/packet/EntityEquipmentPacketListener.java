@@ -9,7 +9,9 @@ import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.Pair;
 
 import me.kteq.hiddenarmor.HiddenArmor;
+import me.kteq.hiddenarmor.util.ArmorSlot;
 import me.kteq.hiddenarmor.util.ConfigHolder;
+import me.kteq.hiddenarmor.util.protocol.ProtocolUtil;
 import me.kteq.hiddenarmor.util.protocol.PacketFields;
 import me.kteq.hiddenarmor.util.protocol.PacketIndexMapper;
 import me.kteq.hiddenarmor.manager.PlayerManager;
@@ -43,8 +45,8 @@ public class EntityEquipmentPacketListener extends PacketAdapter implements Conf
         this.hiddenArmorManager = plugin.getPlayerManager();
         this.protocolManager = plugin.getProtocolManager();
 
-        this.ENTITY_ID_INDEX = indexMapper.get(PacketFields.ENTITY_EQUIPMENT_$SLOT_ITEM_PAIR_LIST);
-        this.SLOT_ITEM_PAIR_LIST_INDEX = indexMapper.get(PacketFields.ENTITY_EQUIPMENT_$ENTITY_ID);
+        this.ENTITY_ID_INDEX = indexMapper.get(PacketFields.ENTITY_EQUIPMENT_$ENTITY_ID);
+        this.SLOT_ITEM_PAIR_LIST_INDEX = indexMapper.get(PacketFields.ENTITY_EQUIPMENT_$SLOT_ITEM_PAIR_LIST);
     }
 
     @Override
@@ -59,6 +61,10 @@ public class EntityEquipmentPacketListener extends PacketAdapter implements Conf
         List<Pair<EnumWrappers.ItemSlot, ItemStack>> pairList = packet.getSlotStackPairLists().read(SLOT_ITEM_PAIR_LIST_INDEX);
 
         for (Pair<EnumWrappers.ItemSlot, ItemStack> pair : pairList) {
+            ArmorSlot armorSlot = ProtocolUtil.getArmorSlot(pair.getFirst());
+            if (armorSlot == null) continue;
+            if (hiddenArmorManager.isArmorVisible(packetPlayer, armorSlot)) continue;
+
             ItemStack item = pair.getSecond();
             if (item.getType().equals(Material.ELYTRA)
                     && ((packetPlayer.isGliding() || ignoreElytra)
@@ -66,10 +72,10 @@ public class EntityEquipmentPacketListener extends PacketAdapter implements Conf
             {
                 pair.setSecond(new ItemStack(Material.ELYTRA));
             }
-            else if (!shouldIgnore(pair.getSecond(), packetPlayer.getWorld()))
+            else if (!shouldIgnore(item, packetPlayer.getWorld()))
                 pair.setSecond(new ItemStack(Material.AIR));
         }
-        packet.getSlotStackPairLists().write(0, pairList);
+        packet.getSlotStackPairLists().write(SLOT_ITEM_PAIR_LIST_INDEX, pairList);
     }
 
     private boolean shouldIgnore(ItemStack itemStack, World world) {

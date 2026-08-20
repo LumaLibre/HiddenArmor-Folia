@@ -5,6 +5,7 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.Pair;
 import me.kteq.hiddenarmor.HiddenArmor;
+import me.kteq.hiddenarmor.util.ArmorSlot;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -30,43 +31,33 @@ public class ProtocolUtil {
     }
 
     public static boolean isArmorSlot(Pair<EnumWrappers.ItemSlot, ItemStack> pair) {
-        return pair.getFirst().equals(EnumWrappers.ItemSlot.FEET) ||
-                pair.getFirst().equals(EnumWrappers.ItemSlot.LEGS) ||
-                pair.getFirst().equals(EnumWrappers.ItemSlot.CHEST) ||
-                pair.getFirst().equals(EnumWrappers.ItemSlot.HEAD);
+        return getArmorSlot(pair.getFirst()) != null;
     }
 
-    public enum ArmorType {
-        HELMET(5), CHEST(6), LEGGS(7), BOOTS(8);
-
-        private final int value;
-
-        public static ArmorType getType(int value){
-            for(int i = 0; i < values().length; i++){
-                if(values()[i].getValue() == value) return values()[i];
-            }
-            return null;
-        }
-
-        public int getValue(){
-            return value;
-        }
-
-        ArmorType(int i){
-            this.value = i;
+    public static ArmorSlot getArmorSlot(EnumWrappers.ItemSlot itemSlot) {
+        switch (itemSlot) {
+            case HEAD: return ArmorSlot.HELMET;
+            case CHEST: return ArmorSlot.CHESTPLATE;
+            case LEGS: return ArmorSlot.LEGGINGS;
+            case FEET: return ArmorSlot.BOOTS;
+            default: return null;
         }
     }
 
-    public static ItemStack getArmor(ArmorType type, PlayerInventory inv) {
-        switch (type) {
-            case HELMET: if(inv.getHelmet()!=null) return inv.getHelmet().clone();
-                break;
-            case CHEST: if(inv.getChestplate()!=null) return inv.getChestplate().clone();
-                break;
-            case LEGGS: if(inv.getLeggings()!=null) return inv.getLeggings().clone();
-                break;
-            case BOOTS: if(inv.getBoots()!=null) return inv.getBoots().clone();
-                break;
+    public static EnumWrappers.ItemSlot getItemSlot(ArmorSlot armorSlot) {
+        switch (armorSlot) {
+            case HELMET: return EnumWrappers.ItemSlot.HEAD;
+            case CHESTPLATE: return EnumWrappers.ItemSlot.CHEST;
+            case LEGGINGS: return EnumWrappers.ItemSlot.LEGS;
+            case BOOTS: return EnumWrappers.ItemSlot.FEET;
+        }
+        return null;
+    }
+
+    public static ItemStack getArmor(ArmorSlot armorSlot, PlayerInventory inv) {
+        if (armorSlot != null) {
+            ItemStack item = armorSlot.getItem(inv);
+            if (item != null) return item.clone();
         }
         return new ItemStack(Material.AIR);
     }

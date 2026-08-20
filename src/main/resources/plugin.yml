@@ -10,5 +10,7 @@ commands:
   hiddenarmor:
     description: "Main Hidden Armor command."
     aliases: [ha, armor]
+    usage: "/hiddenarmor <toggle|hide|show> [slot] [player]"
   togglearmor:
-    description: "Toggles armor visibility."
+    description: "Toggles the visibility of the whole armor or of a single slot."
+    usage: "/togglearmor [slot] [player]"

@@ -15,7 +15,7 @@ ignore:
   # Set this to true if you want to let your players show off their turtle helmet even when their armor is hidden.
   turtle-helmet: false
   # Set this to true if you want elytras to never be hidden.
-  # If this is set to false, the elytra will only be hidden to other players due to minecraft limitations.
+  # If this is set to false, the elytra is hidden for its wearer as well, while still allowing them to fly.
   elytra: false
   # List of worlds where the plugin will not hide armor.
   worlds:

@@ -1,6 +1,8 @@
 package me.kteq.hiddenarmor.handler;
 
 import com.google.common.collect.Multimap;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.Equippable;
 import me.kteq.hiddenarmor.HiddenArmor;
 import me.kteq.hiddenarmor.util.ConfigHolder;
 import me.kteq.hiddenarmor.util.ItemUtil;
@@ -23,6 +25,7 @@ public class ArmorPlaceholderHandler implements ConfigHolder {
 
     private boolean ignoreLeatherArmor;
     private boolean ignoreTurtleHelmet;
+    private boolean ignoreElytra;
 
     public ArmorPlaceholderHandler(HiddenArmor plugin) {
         plugin.addConfigHolder(this);
@@ -47,10 +50,22 @@ public class ArmorPlaceholderHandler implements ConfigHolder {
         String displayName = buildName(itemStack);
         newItemMeta.setDisplayName(displayName);
 
+        boolean glider = itemStack.hasData(DataComponentTypes.GLIDER);
+        Equippable equippable = itemStack.getData(DataComponentTypes.EQUIPPABLE);
+        Integer maxDamage = itemStack.getData(DataComponentTypes.MAX_DAMAGE);
+
         itemStack.setType(placeholderMaterial);
         itemStack.setItemMeta(newItemMeta);
 
+        if (maxDamage != null) itemStack.setData(DataComponentTypes.MAX_DAMAGE, maxDamage);
+        if (glider && equippable != null) handleElytra(itemStack, equippable);
+
         return itemStack;
+    }
+
+    private void handleElytra(ItemStack placeholder, Equippable equippable) {
+        placeholder.setData(DataComponentTypes.GLIDER);
+        placeholder.setData(DataComponentTypes.EQUIPPABLE, equippable.toBuilder().assetId(null).build());
     }
 
     private ItemMeta buildNewItemMeta(ItemStack itemStack, Material material) {
@@ -76,6 +91,8 @@ public class ArmorPlaceholderHandler implements ConfigHolder {
     }
 
     private Material getPlaceholderMaterial(ItemStack armor) {
+        if(armor.getType().equals(Material.ELYTRA))
+            return ignoreElytra ? null : Material.PALE_OAK_BUTTON;
         if(!ItemUtil.isArmor(armor)) return null;
 
         String m = armor.getType().toString();
@@ -124,6 +141,7 @@ public class ArmorPlaceholderHandler implements ConfigHolder {
     public void loadConfig(FileConfiguration config) {
         this.ignoreLeatherArmor = config.getBoolean("ignore.leather-armor");
         this.ignoreTurtleHelmet = config.getBoolean("ignore.turtle-helmet");
+        this.ignoreElytra = config.getBoolean("ignore.elytra");
     }
 
 }
